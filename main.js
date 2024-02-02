@@ -1,6 +1,11 @@
 (function (window) {
     const { Client, Events, GatewayIntentBits, EmbedBuilder } = require('discord.js');
-    const client = new Client();
+    const client = new Client({
+        intents: [
+            GatewayIntentBits.Guilds,
+            GatewayIntentBits.GuildMessages
+        ],
+     });
 
     let prefix;
 
