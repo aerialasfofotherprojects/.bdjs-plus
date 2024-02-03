@@ -3,167 +3,187 @@
     const client = new Client({
         intents: [
             GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages
-        ],
-     });
+            GatewayIntentBits.GuildMessages,
+            GatewayIntentBits.GuildMembers
+        ]
+    });
 
     let prefix;
+    let discordMessage;
 
-    const bdjsPlus = {
+    // Objects
+    client.on('messageCreate', (receivedMessage) => {
+        discordMessage = receivedMessage;
+        let message = {
+            content: receivedMessage.content,
+            arguments: receivedMessage.content.slice(prefix.length).trim().split(/ +/),
+            trigger: receivedMessage.content.slice(prefix.length).trim().split(/ +/)[0],
+            guild: receivedMessage.guild,
+            channel: {
+                id: receivedMessage.channel.id
+            }
+        }
+        console.log(`Message received in ${message.guild.name}, ${message.channel.id}`)
+    });
+
+    const bdjs = {
         version: '0.0.1',
         createBot: function createBot(token, botPrefix) {
             try {
-            client.once(Events.ClientReady, readyClient => {
-                console.log(`Logged into ${readyClient.user.tag} and ready to run.`);
-            })
-            client.login(token);
-            prefix = botPrefix;
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
+                client.once(Events.ClientReady, readyClient => {
+                    console.log(`Logged into ${readyClient.user.tag} and ready to run.`);
+                })
+                client.login(token);
+                prefix = botPrefix;
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
         intents: function intents(intentsArray) {
             const discordIntents = [];
 
             try {
-            intentsArray.forEach(intent => {
-                discordIntents.push(GatewayIntentBits[intent]);
-            });
+                intentsArray.forEach(intent => {
+                    discordIntents.push(GatewayIntentBits[intent]);
+                });
 
-            client.options.intents = discordIntents;
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
-            }
-        }, // Objects
-        ctx: {
-            message: message = (item) => {
-                const message = {
-                    content: message.content,
-                    arguments: message.content.slice(prefix.length).trim().split(/ +/),
-                    trigger: message.content.slice(prefix.length).trim().split(/ +/)[0]
-                };
-                
-                return message[item];
+                client.options.intents = discordIntents;
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
-        setResponse: function setResponse(messageContent) {
-            let channelId = client.channels.cache.get('channel_id');
-
+        newCommand: function newCommand(name, code, type) {
             try {
-            channelId.send(messageContent);
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
+                if (type === 'text') {
+                    commands[name] = new Function(code);
+                }
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
+            }
+        }
+    };
+
+    const commands = {
+        setResponse: function setResponse(messageContent) {
+            try {
+                discordMessage.channel.send(messageContent);
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
         setEmbedResponse: function setEmbedResponse(color, title, author, authorIcon, addField, inline, fieldValue, footer) {
             try {
-            let embed = new EmbedBuilder()
-                .setColor(color)
-                .setAuthor({ name: title, iconUrl: authorIcon })
-                .setDescription(author)
-                .addFields({ name: addField, value: fieldValue, inline: inline })
-                .setFooter({ text: footer });
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
+                let embed = new EmbedBuilder()
+                    .setColor(color)
+                    .setAuthor({ name: title, iconUrl: authorIcon })
+                    .setDescription(author)
+                    .addFields({ name: addField, value: fieldValue, inline: inline })
+                    .setFooter({ text: footer });
+
+                discordMessage.channel.send({ embeds: [embed] });
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
-        ban: function ban(userId) {
+        ban: async function ban(userId) {
             let user = userId;
 
             try {
-            guild.members.ban(user);
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
+                await discordMessage.guild.members.ban(user);
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
-        unban: function unban(userId) {
+        unban: async function unban(userId) {
             let user = userId;
 
             try {
-            guild.members.unban(user);
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
+                await discordMessage.guild.members.unban(user);
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
-        banWithReason: function banWithReason(userId, reason) {
+        banWithReason: async function banWithReason(userId, reason) {
             let user = userId;
-            let reason = reason;
+            let banReason = reason;
 
             try {
-            if (user) {
-                user.ban({ reason: reason});
-            }
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
+                await user.ban({ reason: banReason });
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
-        kick: function kick(userId) {
+        kick: async function kick(userId) {
             let user = userId;
-            try {
-            if (user) {
-                user.kick();
-            }
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
-            }
-        },
-        kickWithReason: function banWithReason(userId, reason) {
-            let user = userId;
-            let reason = reason;
 
             try {
-            if (user) {
-                user.kick(reason);
-            }
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
+                await discordMessage.guild.members.kick(user);
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
-        botTyping: function botTyping() {
-            message.channel.sendTyping();
+        kickWithReason: async function kickWithReason(userId, reason) {
+            let user = userId;
+            let kickReason = reason;
+
+            try {
+                await user.kick(kickReason);
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
+            }
         },
-        createChannel: function createChannel(name, type) {
+        botTyping: async function botTyping() {
+            try {
+                await discordMessage.channel.sendTyping();
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
+            }
+        },
+        createChannel: async function createChannel(name, type) {
             let channelName = name;
             let channelType = type;
-            
+
             try {
-            function compareTextVoice(item1, item2) {
-                if (item1 === item2) {
-                    if (item2 == 'text') {
-                        return 'GUILD_TEXT';
-                    } else if (item2 == 'voice') {
-                        return 'GUILD_VOICE';
+                function compareTextVoice(item) {
+                    return item === 'text' ? 'GUILD_TEXT' : item === 'voice' ? 'GUILD_VOICE' : null;
+                }
+
+                let usableChannelType = compareTextVoice(channelType);
+
+                if (usableChannelType == undefined || usableChannelType == null) {
+                    usableChannelType = compareTextVoice(channelType);
+                }
+
+                if (channelName && usableChannelType) {
+                    try {
+                        const channel = await discordMessage.guild.channels.create(channelName, { type: usableChannelType });
+                        console.log(`Channel created: ${channel.name}, type: ${channel.type}`);
+                    } catch (error) {
+                        console.error(`BDJS: ${error.name} - ${error.message}`);
                     }
                 }
-            }
-
-            let usableChannelType = compareTextVoice(channelType, 'text');
-
-            if (usableChannelType == undefined || null) {
-                let usableChannelType = compareTextVoice(channelType, 'voice');
-            }
-
-            if (channelName && usableChannelType) {
-                guild.channels.create();
-            }
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
-        removeChannel: function removeChannel(channelId) {
+        removeChannel: async function removeChannel(channelId) {
             try {
-                let channel = channelId;
-                
-                channel.delete();
-            } catch {
-                console.error(`BDJS: ${error.type} ${error.name}`);
+                const channel = await discordMessage.guild.channels.cache.get(channelId);
+                if (channel) {
+                    await channel.delete();
+                    console.log(`Channel deleted: ${channel.name}`);
+                }
+            } catch (error) {
+                console.error(`BDJS: ${error.name} - ${error.message}`);
             }
-        },
-    }
-    // Expose the library to the global scope
+        }
+    };
+
+    // Expose the libraries to the global scope
     if (typeof module !== 'undefined' && module.exports) {
-        module.exports = bdjsPlus;
+        module.exports = { bdjs, commands };
     } else {
-        window.bdjsPlus = bdjsPlus;
+        window.bdjs = bdjs;
+        window.commands = commands;
     }
 })(window || global);
