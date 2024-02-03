@@ -9,7 +9,7 @@
 const bdjs = require('bdjsPlus');
 
 createBot('BotToken', 'prefix');
-intents(['INTENT','INTENT','INTENT']
+intents(['INTENT','INTENT','INTENT']);
 
 // The commands
 ```
