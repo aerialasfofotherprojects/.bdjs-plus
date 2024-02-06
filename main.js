@@ -4,15 +4,15 @@
         intents: [
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.GuildMembers
+            GatewayIntentBits.GuildMembers,
+            GatewayIntentBits.MessageContent
         ]
     });
 
     let prefix;
     let discordMessage;
 
-    // Objects
-    client.on('messageCreate', (receivedMessage) => {
+    client.on(Events.MessageCreate, (receivedMessage) => {
         discordMessage = receivedMessage;
         let message = {
             content: receivedMessage.content,
@@ -34,44 +34,35 @@
                     console.log(`Logged into ${readyClient.user.tag} and ready to run.`);
                 })
                 client.login(token);
-                prefix = botPrefix;
+                prefix = botPrefix.toString();
             } catch (error) {
                 console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
-        intents: function intents(intentsArray) {
-            const discordIntents = [];
-
+        newSlashCommand: async function createSlashCommand(guildId, commandData, commandCallback) {
             try {
-                intentsArray.forEach(intent => {
-                    discordIntents.push(GatewayIntentBits[intent]);
+                const command = await client.guilds.cache.get(guildId)?.commands.create(commandData);
+                console.log(`Slash command ${command.name} created successfully.`);
+
+                client.on(Events.InteractionCreate, async interaction => {
+                    if (!interaction.isCommand() || interaction.commandName !== commandData.name) return;
+                    await commandCallback();
                 });
-
-                client.options.intents = discordIntents;
             } catch (error) {
-                console.error(`BDJS: ${error.name} - ${error.message}`);
-            }
-        },
-        newCommand: function newCommand(name, code, type) {
-            try {
-                if (type === 'text') {
-                    commands[name] = new Function(code);
-                }
-            } catch (error) {
-                console.error(`BDJS: ${error.name} - ${error.message}`);
+                console.error(`Error creating slash command: ${error}`);
             }
         }
     };
 
     const commands = {
-        setResponse: function setResponse(messageContent) {
+        setResponse: async function setResponse(messageContent) {
             try {
-                discordMessage.channel.send(messageContent);
+                await discordMessage.channel.send(messageContent);
             } catch (error) {
                 console.error(`BDJS: ${error.name} - ${error.message}`);
             }
         },
-        setEmbedResponse: function setEmbedResponse(color, title, author, authorIcon, addField, inline, fieldValue, footer) {
+        setEmbedResponse: async function setEmbedResponse(color, title, author, authorIcon, addField, inline, fieldValue, footer) {
             try {
                 let embed = new EmbedBuilder()
                     .setColor(color)
@@ -80,7 +71,7 @@
                     .addFields({ name: addField, value: fieldValue, inline: inline })
                     .setFooter({ text: footer });
 
-                discordMessage.channel.send({ embeds: [embed] });
+                await discordMessage.channel.send({ embeds: [embed] });
             } catch (error) {
                 console.error(`BDJS: ${error.name} - ${error.message}`);
             }
@@ -179,11 +170,10 @@
         }
     };
 
-    // Expose the libraries to the global scope
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = { bdjs, commands };
     } else {
         window.bdjs = bdjs;
         window.commands = commands;
     }
-})(window || global);
+})(typeof window !== 'undefined' ? window : global);
